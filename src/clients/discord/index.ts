@@ -61,6 +61,9 @@ export class DiscordClient extends EventEmitter {
     this.voiceManager = new VoiceManager(this);
     this.messageManager = new MessageManager(this, this.voiceManager);
 
+    this.client.on("debug", (info) => {
+      console.log("debug:", info);
+    })
     this.client.once(Events.ClientReady, this.onClientReady.bind(this));
     this.client.login(this.apiToken);
 
@@ -198,7 +201,6 @@ export class DiscordClient extends EventEmitter {
     this.runtime.ensureParticipantInRoom(userIdUUID, roomId),
     this.runtime.ensureParticipantInRoom(agentId, roomId),
   ]);
-
 
     // Save the reaction as a message
     await this.runtime.messageManager.createMemory({

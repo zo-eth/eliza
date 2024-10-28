@@ -16,7 +16,7 @@ export class AudioMonitor {
     this.readable = readable;
     this.maxSize = maxSize;
     this.readable.on("data", (chunk: Buffer) => {
-      //console.log('AudioMonitor got data');
+      console.log('AudioMonitor received chunk of size:', chunk.length);
       if (this.lastFlagged < 0) {
         this.lastFlagged = this.buffers.length;
       }
@@ -47,6 +47,9 @@ export class AudioMonitor {
       if (this.ended) return;
       console.log("Speaking started");
       this.reset();
+    });
+    this.readable.on("error", (error) => {
+      console.error('AudioMonitor error:', error);
     });
   }
 

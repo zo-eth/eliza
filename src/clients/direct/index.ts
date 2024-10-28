@@ -13,6 +13,8 @@ import { messageCompletionFooter } from "../../core/parsing.ts";
 import multer, { File } from 'multer';
 import { Request as ExpressRequest } from 'express';
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =

@@ -3,6 +3,7 @@ import {
   NoSubscriberBehavior,
   StreamType,
   VoiceConnection,
+  VoiceConnectionStatus,
   createAudioPlayer,
   createAudioResource,
   getVoiceConnection,
@@ -14,6 +15,7 @@ import {
   Client,
   Guild,
   GuildMember,
+  PermissionsBitField,
   VoiceChannel,
   VoiceState,
 } from "discord.js";
@@ -100,10 +102,14 @@ export class VoiceManager extends EventEmitter {
     const connection = joinVoiceChannel({
       channelId: channel.id,
       guildId: channel.guild.id,
-      adapterCreator: channel.guild.voiceAdapterCreator as any,
+      adapterCreator: channel.guild.voiceAdapterCreator,
       selfDeaf: false,
       selfMute: false,
     });
+
+    //wait for 5 seconds
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    console.log("joined voice channel, status:", connection.state.status);
 
     for (const [, member] of channel.members) {
       if (!member.user.bot) {
@@ -127,19 +133,71 @@ export class VoiceManager extends EventEmitter {
     });
   }
 
+  private monitoredMembers = new Set<string>();
   private async monitorMember(
     member: GuildMember,
     channel: BaseGuildVoiceChannel,
   ) {
+    if (this.monitoredMembers.has(member.id)) {
+      console.log("already monitoring member:", member.id);
+      return;
+    }
+    this.monitoredMembers.add(member.id);
     const userId = member.id;
     const userName = member.user.username;
     const name = member.user.displayName;
+    //check permissions of bot for the channel
+    const permissions = channel.permissionsFor(this.client.user);
+    if (!permissions.has(PermissionsBitField.Flags.Connect)) {
+      console.log("Bot does not have connect permission for channel");
+      return;
+    }
+
     const connection = getVoiceConnection(member.guild.id);
+    if (!connection) {
+      console.log("No connection found");
+      return;
+    }
+
+    // Force configure the connection
+    connection.configureNetworking();
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        console.log("Connection state at timeout:", connection.state.status);
+        reject(new Error('Connection timeout'));
+      }, 50000); // Increased timeout to 50s
+
+      const handleStateChange = (oldState, newState) => {
+        console.log("State change from", oldState.status, "to", newState.status);
+        
+        if (newState.status === VoiceConnectionStatus.Connecting) {
+          // Force move to signaling state
+          (connection.state as any).status = VoiceConnectionStatus.Signalling;
+        } else if (newState.status === VoiceConnectionStatus.Ready) {
+          clearTimeout(timeout);
+          connection.removeListener('stateChange', handleStateChange);
+          resolve();
+        }
+      };
+
+      if (connection.state.status === VoiceConnectionStatus.Ready) {
+        clearTimeout(timeout);
+        resolve();
+      } else {
+        connection.on('stateChange', handleStateChange);
+        // Force a state change if we're stuck
+        if (connection.state.status === VoiceConnectionStatus.Connecting) {
+          (connection.state as any).status = VoiceConnectionStatus.Signalling;
+        }
+      }
+    });
     const receiveStream = connection?.receiver.subscribe(userId, {
       autoDestroy: true,
       emitClose: true,
     });
     if (!receiveStream || receiveStream.readableLength === 0) {
+      console.log("no receive stream:", connection.state.status);
       return;
     }
     const opusDecoder = new prism.opus.Decoder({
