@@ -45,11 +45,13 @@ export class TelegramClient {
   public async start(): Promise<void> {
     console.log("🚀 Starting Telegram bot...");
     try {
-      await this.bot.launch({
+       this.bot.launch({
         dropPendingUpdates: true,
+      }, () => {
+        console.log("✨ Telegram bot successfully launched and is running!");
+        console.log(`Bot username: @${this.bot.botInfo?.username}`);
       });
-      console.log("✨ Telegram bot successfully launched and is running!");
-      console.log(`Bot username: @${this.bot.botInfo?.username}`);
+
 
       // Graceful shutdown handlers
       const shutdownHandler = async (signal: string) => {
