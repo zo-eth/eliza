@@ -165,5 +165,8 @@
     "sqlite-vss-linux-x64": "0.1.2",
     "sqlite-vss-win32-arm64": "^0.1.2",
     "sqlite-vss-win32-x64": "^0.1.2"
+  },
+  "engines": {
+    "node": ">=21.0.0"
   }
 }
