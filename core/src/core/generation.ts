@@ -51,7 +51,19 @@ export async function generateText({
     }
 
     const provider = runtime.modelProvider;
+    console.log("Selected provider:", provider);
+    
+    if (!models[provider]) {
+        throw new Error(`Invalid model provider: ${provider}. Available providers: ${Object.keys(models).join(', ')}`);
+    }
+    
     const model = models[provider].model[modelClass];
+    console.log("Selected model:", model);
+    
+    if (!model) {
+        throw new Error(`Invalid model class "${modelClass}" for provider "${provider}"`);
+    }
+
     const temperature = models[provider].settings.temperature;
     const frequency_penalty = models[provider].settings.frequency_penalty;
     const presence_penalty = models[provider].settings.presence_penalty;
@@ -115,6 +127,9 @@ export async function generateText({
                 break;
 
             case ModelProvider.LLAMALOCAL:
+                if (!runtime.llamaService) {
+                    throw new Error('LlamaService is not initialized in runtime for LLAMALOCAL provider');
+                }
                 response = await runtime.llamaService.queueTextCompletion(
                     context,
                     temperature,
@@ -402,6 +417,7 @@ export async function generateMessageResponse({
     context: string,
     modelClass: string,
 }): Promise<Content> {
+    console.log("generateMessageResponse modelClass:", modelClass);
     const max_context_length = models[runtime.modelProvider].settings.maxInputTokens;
     context = trimTokens(context, max_context_length, "gpt-4o");
     let retryLength = 1000; // exponential backoff
