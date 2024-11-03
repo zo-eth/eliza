@@ -139,6 +139,12 @@ export interface State {
     responseData?: Content; // An optional content object representing the agent's response in the current state.
     recentInteractionsData?: Memory[]; // An optional array of memory objects representing recent interactions in the conversation.
     recentInteractions?: string; // An optional string representation of recent interactions in the conversation.
+    twitterProfile?: {
+        username: string;
+        screenName: string;
+        bio: string;
+        nicknames?: string[];
+    };
     [key: string]: unknown; // Allows for additional properties to be included dynamically.
 }
 
@@ -313,6 +319,12 @@ export type Character = {
         all: string[];
         chat: string[];
         post: string[];
+    };
+    twitterProfile?: {
+        username: string;
+        screenName: string;
+        bio: string;
+        nicknames?: string[];
     };
 };
 
