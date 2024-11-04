@@ -136,10 +136,34 @@ export class VoiceManager extends EventEmitter {
         const userName = member.user.username;
         const name = member.user.displayName;
         const connection = getVoiceConnection(member.guild.id);
+        console.log("Connection:", connection.state.status);
+        if (connection.state.status !== 'ready') {
+            try {
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Connection timeout'));
+                    }, 40000);
+    
+                    connection.on('stateChange', (_, newState) => {
+                        console.log("newState:", newState.status);
+                        if (newState.status === 'ready') {
+                            clearTimeout(timeout);
+                            resolve(true);
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Failed to establish voice connection:', error);
+                return;
+            }
+        }
+
         const receiveStream = connection?.receiver.subscribe(userId, {
             autoDestroy: true,
             emitClose: true,
         });
+        console.log("receiveStream:", receiveStream);
+        console.log("readable length:", receiveStream.readableLength);
         if (!receiveStream || receiveStream.readableLength === 0) {
             return;
         }
