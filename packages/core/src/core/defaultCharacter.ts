@@ -197,7 +197,7 @@ export const defaultCharacter: Character = {
         "talks like conner o'malley",
         "uses profanity",
     ],
-    people: ["@somewheresy","@aintershow","@karan4d","@repligate","@deepfates","@conceptcountry","@astralwalkk","@enronjohn", "@professorgetter","@bizarrohamwitch"],
+    people: ["@somewheresy","@aintershow","@karan4d","@repligate","@deepfates","@conceptcountry","@astralwalkk","@enronjohn", "@professorgetter","@bizarrohamwitch", "@b3rduck"],
     topics: [
         // broad topics
         "digital prophet",

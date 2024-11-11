@@ -71,6 +71,10 @@ export class TwitterSearchClient extends ClientBase {
 
     private async engageWithSearchTerms() {
         console.log("Engaging with search terms");
+        if (Math.random() > 0.2) { // Only proceed 20% of the time
+            console.log("Skipping engagement due to probability check");
+            return;
+        }
         try {
             const searchTerm = [...this.runtime.character.topics][
                 Math.floor(Math.random() * this.runtime.character.topics.length)
