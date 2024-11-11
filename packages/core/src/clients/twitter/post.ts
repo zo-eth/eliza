@@ -103,7 +103,7 @@ export class TwitterPostClient extends ClientBase {
             const newTweetContent = await generateText({
                 runtime: this.runtime,
                 context,
-                modelClass: ModelClass.SMALL,
+                modelClass: ModelClass.LARGE,
             });
 
             const slice = newTweetContent.replaceAll(/\\n/g, "\n").trim();

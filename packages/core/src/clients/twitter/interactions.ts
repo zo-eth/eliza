@@ -302,7 +302,7 @@ export class TwitterInteractionClient extends ClientBase {
         const response = await generateMessageResponse({
             runtime: this.runtime,
             context,
-            modelClass: ModelClass.SMALL,
+            modelClass: ModelClass.LARGE,
         });
 
         const stringId = stringToUuid(tweet.id + "-" + this.runtime.agentId);

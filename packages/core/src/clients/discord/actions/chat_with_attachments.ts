@@ -55,7 +55,7 @@ const getAttachmentIds = async (
         const response = await generateText({
             runtime,
             context,
-            modelClass: ModelClass.SMALL,
+            modelClass: ModelClass.LARGE,
         });
         console.log("response", response);
         // try parsing to a json object

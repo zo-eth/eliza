@@ -1,8 +1,17 @@
-# Eliza
+# 
+# Centience
 
-<img src="./docs/static/img/eliza_banner.jpg" alt="Eliza Banner" width="100%" />
+# Fork of ai16z Eliza
 
-### [For Chinese Version: 中文说明](./README_CN.md)
+- make sure you use Node 23
+- Switched to Together APIs using 405B models (~$150/mo)
+- Added Luma AI for video generation (in progress)
+
+So this thing is kinda disorganized to my spec, but here's how to get it started:
+- fill out .env file with your keys -- get the cookies by downloading a json string from your browser when logged into your account, make sure 2FA is off.
+- `pnpm i`
+- `pnpm build`
+- `pnpm start`
 
 ## Features
 

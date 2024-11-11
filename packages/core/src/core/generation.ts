@@ -72,8 +72,15 @@ export async function generateText({
         switch (provider) {
             case ModelProvider.OPENAI:
             case ModelProvider.LLAMACLOUD: {
-                elizaLogger.log("Initializing OpenAI model.");
-                const openai = createOpenAI({ apiKey, baseURL: endpoint });
+                elizaLogger.log("Initializing OpenAI/Together model.");
+                const apiKeyToUse = provider === ModelProvider.LLAMACLOUD 
+                    ? runtime.getSetting("TOGETHER_API_KEY") || settings.TOGETHER_API_KEY
+                    : apiKey;
+
+                const openai = createOpenAI({ 
+                    apiKey: apiKeyToUse, 
+                    baseURL: endpoint 
+                });
 
                 const { text: openaiResponse } = await aiGenerateText({
                     model: openai.languageModel(model),
@@ -89,7 +96,7 @@ export async function generateText({
                 });
 
                 response = openaiResponse;
-                elizaLogger.log("Received response from OpenAI model.");
+                elizaLogger.log(`Received response from ${provider} model.`);
                 break;
             }
 
