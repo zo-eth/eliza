@@ -21,5 +21,3 @@ export const solanaPlugin: Plugin = {
     evaluators: [trustEvaluator],
     providers: [walletProvider, trustScoreProvider],
 };
-
-export default solanaPlugin;

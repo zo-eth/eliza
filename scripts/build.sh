@@ -11,6 +11,11 @@ fi
 
 # Iterate over each directory in the packages directory
 for package in packages/*; do
+    # Skip the test directory
+    if [ "$(basename "$package")" = "test" ]; then
+        continue
+    fi
+
     if [ -d "$package" ]; then
         echo "Building package: $(basename "$package")"
         cd "$package" || continue
