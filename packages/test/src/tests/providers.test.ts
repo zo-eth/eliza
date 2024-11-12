@@ -1,13 +1,7 @@
 import dotenv from "dotenv";
 import { zeroUuid } from "../test_resources/constants.js";
 import { createRuntime } from "../test_resources/createRuntime.js";
-import {
-    IAgentRuntime,
-    type Memory,
-    type Provider,
-    type State,
-    type UUID,
-} from "@ai16z/eliza";
+import { IAgentRuntime, Memory, Provider, State, UUID } from "@ai16z/eliza";
 
 dotenv.config({ path: ".dev.vars" });
 
