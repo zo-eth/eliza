@@ -1,18 +1,19 @@
 import dotenv from "dotenv";
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { createRuntime } from "../test_resources/createRuntime.js";
 import { getOrCreateRelationship } from "../test_resources/getOrCreateRelationship.js";
 import { runAiTest } from "../test_resources/runAiTest.js";
 import { messageHandlerTemplate } from "../test_resources/templates.js";
 import { TEST_ACTION, TEST_ACTION_FAIL } from "../test_resources/testAction.js";
-import { type User } from "../test_resources/types.js";
+import { User } from "../test_resources/types.js";
 import {
     MemoryManager,
     Content,
     IAgentRuntime,
     ModelClass,
     State,
-    type Memory,
-    type UUID,
+    Memory,
+    UUID,
     stringToUuid,
     composeContext,
     generateMessageResponse,
@@ -220,46 +221,57 @@ describe("Actions", () => {
     });
 
     // Validate that TEST_ACTION is in the state
-    test("Validate that TEST_ACTION is in the state", async () => {
-        await runAiTest("Validate TEST_ACTION is in the state", async () => {
-            const message: Memory = {
-                agentId: runtime.agentId,
-                userId: user.id as UUID,
-                content: {
-                    text: "Please respond with the message 'ok' and the action TEST_ACTION",
-                },
-                roomId,
-            };
+    test(
+        "Validate that TEST_ACTION is in the state",
+        async () => {
+            await runAiTest(
+                "Validate TEST_ACTION is in the state",
+                async () => {
+                    const message: Memory = {
+                        agentId: runtime.agentId,
+                        userId: user.id as UUID,
+                        content: {
+                            text: "Please respond with the message 'ok' and the action TEST_ACTION",
+                        },
+                        roomId,
+                    };
 
-            const response = await handleMessage(runtime, message);
-            return response.action === "TEST_ACTION"; // Return true if the expected action matches
-        });
-    }, 60000);
+                    const response = await handleMessage(runtime, message);
+                    return response.action === "TEST_ACTION"; // Return true if the expected action matches
+                }
+            );
+        },
+        { timeout: 60000 }
+    );
 
     // Test that TEST_ACTION action handler is called properly
-    test("Test action handler is called", async () => {
-        await runAiTest("Test action handler is called", async () => {
-            const testAction = runtime.actions.find(
-                (action) => action.name === "TEST_ACTION"
-            );
-            if (!testAction || !testAction.handler) {
-                console.error(
-                    "Continue action or its handler function is undefined"
+    test(
+        "Test action handler is called",
+        async () => {
+            await runAiTest("Test action handler is called", async () => {
+                const testAction = runtime.actions.find(
+                    (action) => action.name === "TEST_ACTION"
                 );
-                return false; // Return false to indicate the test setup failed
-            }
+                if (!testAction || !testAction.handler) {
+                    console.error(
+                        "Continue action or its handler function is undefined"
+                    );
+                    return false; // Return false to indicate the test setup failed
+                }
 
-            const mockMessage: Memory = {
-                userId: user.id as UUID,
-                agentId: runtime.agentId,
-                content: {
-                    text: "Test message for TEST action",
-                },
-                roomId,
-            };
+                const mockMessage: Memory = {
+                    userId: user.id as UUID,
+                    agentId: runtime.agentId,
+                    content: {
+                        text: "Test message for TEST action",
+                    },
+                    roomId,
+                };
 
-            const response = await testAction.handler(runtime, mockMessage);
-            return response !== undefined; // Return true if the handler returns a defined response
-        });
-    }, 60000); // You can adjust the timeout if needed
+                const response = await testAction.handler(runtime, mockMessage);
+                return response !== undefined; // Return true if the handler returns a defined response
+            });
+        },
+        { timeout: 60000 }
+    ); // You can adjust the timeout if needed
 });
