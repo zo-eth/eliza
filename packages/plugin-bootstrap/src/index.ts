@@ -1,4 +1,8 @@
-import { Plugin } from "@ai16z/eliza/src/types.ts";
+export * from "./actions/index.ts";
+export * from "./evaluators/index.ts";
+export * from "./providers/index.ts";
+
+import { Plugin } from "@ai16z/eliza";
 import { continueAction } from "./actions/continue.ts";
 import { followRoomAction } from "./actions/followRoom.ts";
 import { ignoreAction } from "./actions/ignore.ts";
