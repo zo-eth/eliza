@@ -100,6 +100,32 @@ export class PostgresDatabaseAdapter extends DatabaseAdapter {
         }
     }
 
+
+    async getValue(key: string): Promise<string | null> {
+        const client = await this.pool.connect();
+        const { rows } = await client.query("SELECT value FROM keyValueStore WHERE key = $1", [key]);
+        return rows.length > 0 ? rows[0].value : null;
+    }
+    
+    async setValue(key: string, value: string): Promise<void> {
+        const client = await this.pool.connect();
+        await client.query("INSERT INTO keyValueStore (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2", [key, value]);
+    }
+
+    async deleteValue(key: string): Promise<void> {
+        const client = await this.pool.connect();
+        await client.query("DELETE FROM keyValueStore WHERE key = $1", [key]);
+    }
+
+    async hasKey(key: string): Promise<boolean> {
+        const client = await this.pool.connect();
+        const { rows } = await client.query(
+            "SELECT COUNT(*) FROM keyValueStore WHERE key = $1",
+            [key]
+        );
+        return rows.length > 0 ? rows[0].count > 0 : false;
+    }
+
     async getMemoriesByRoomIds(params: {
         roomIds: UUID[];
         agentId?: UUID;

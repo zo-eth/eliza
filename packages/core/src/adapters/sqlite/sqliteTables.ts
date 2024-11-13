@@ -82,6 +82,12 @@ CREATE TABLE IF NOT EXISTS "rooms" (
     "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table: keyValueStore
+CREATE TABLE IF NOT EXISTS "keyValueStore" (
+    "key" TEXT PRIMARY KEY,
+    "value" TEXT
+);
+
 -- Index: relationships_id_key
 CREATE UNIQUE INDEX IF NOT EXISTS "relationships_id_key" ON "relationships" ("id");
 

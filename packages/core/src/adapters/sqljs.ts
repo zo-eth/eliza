@@ -743,4 +743,32 @@ export class SqlJsDatabaseAdapter extends DatabaseAdapter {
         stmt.free();
         return relationships;
     }
+
+    async getValue(key: string): Promise<string | null> {
+        const sql = "SELECT value FROM keyValueStore WHERE key = ?";
+        const stmt = this.db.prepare(sql);
+        stmt.bind([key]);
+        return stmt.step() ? stmt.getAsString(0) : null;
+    }
+
+    async setValue(key: string, value: string): Promise<void> {
+        const sql = "INSERT INTO keyValueStore (key, value) VALUES (?, ?)";
+        const stmt = this.db.prepare(sql);
+        stmt.run([key, value]);
+        stmt.free();
+    }
+
+    async deleteValue(key: string): Promise<void> {
+        const sql = "DELETE FROM keyValueStore WHERE key = ?";
+        const stmt = this.db.prepare(sql);
+        stmt.run([key]);
+        stmt.free();
+    }
+
+    async hasKey(key: string): Promise<boolean> {
+        const sql = "SELECT COUNT(*) FROM keyValueStore WHERE key = ?";
+        const stmt = this.db.prepare(sql);
+        stmt.bind([key]);
+        return stmt.step() ? stmt.getAsInteger(0) > 0 : false;
+    }
 }

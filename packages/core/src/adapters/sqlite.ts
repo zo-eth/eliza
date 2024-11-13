@@ -652,4 +652,25 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
             .prepare(sql)
             .all(params.userId, params.userId) as Relationship[];
     }
+
+    async getValue(key: string): Promise<string | null> {
+        const sql = "SELECT value FROM keyValueStore WHERE key = ?";
+        return this.db.prepare(sql).get(key) as string | null;
+    }
+
+    async setValue(key: string, value: string): Promise<void> {
+        const sql = "INSERT INTO keyValueStore (key, value) VALUES (?, ?)";
+        this.db.prepare(sql).run(key, value);
+    }
+
+    async deleteValue(key: string): Promise<void> {
+        const sql = "DELETE FROM keyValueStore WHERE key = ?";
+        this.db.prepare(sql).run(key);
+    }
+
+    async hasKey(key: string): Promise<boolean> {
+        const sql = "SELECT COUNT(*) FROM keyValueStore WHERE key = ?";
+        return (this.db.prepare(sql).get(key) as { count: number })
+            .count > 0;
+    }
 }

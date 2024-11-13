@@ -332,4 +332,31 @@ export abstract class DatabaseAdapter implements IDatabaseAdapter {
     abstract getRelationships(params: {
         userId: UUID;
     }): Promise<Relationship[]>;
+
+    /**
+     * Retrieves a value from the database.
+     * @param key The key to retrieve the value for.
+     * @returns A Promise that resolves to the value or null if not found.
+     */
+    abstract getValue(key: string): Promise<string | null>;
+
+    /**
+     * Sets a value in the database.
+     * @param key The key to set the value for.
+     * @param value The value to set.
+     */
+    abstract setValue(key: string, value: string): Promise<void>;
+
+    /**
+     * Deletes a value from the database.
+     * @param key The key to delete the value for.
+     */
+    abstract deleteValue(key: string): Promise<void>;
+
+    /**
+     * Checks if a key exists in the database.
+     * @param key The key to check for.
+     * @returns A Promise that resolves to a boolean indicating whether the key exists.
+     */
+    abstract hasKey(key: string): Promise<boolean>;
 }

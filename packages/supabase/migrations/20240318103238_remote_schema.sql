@@ -439,6 +439,13 @@ CREATE TABLE IF NOT EXISTS "public"."accounts" (
 
 ALTER TABLE "public"."accounts" OWNER TO "postgres";
 
+CREATE TABLE IF NOT EXISTS "public"."keyValueStore" (
+    "key" "text" PRIMARY KEY,
+    "value" "text"
+);
+
+ALTER TABLE "public"."keyValueStore" OWNER TO "postgres";
+
 CREATE TABLE IF NOT EXISTS "public"."logs" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "createdAt" timestamp with time zone DEFAULT "now"() NOT NULL,

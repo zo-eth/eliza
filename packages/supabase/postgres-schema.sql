@@ -30,6 +30,11 @@ CREATE TABLE rooms (
     "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE keyValueStore (
+    "key" TEXT PRIMARY KEY,
+    "value" TEXT
+);
+
 CREATE TABLE memories (
     "id" UUID PRIMARY KEY,
     "type" TEXT NOT NULL,

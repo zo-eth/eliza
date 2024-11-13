@@ -453,6 +453,10 @@ export interface IDatabaseAdapter {
         userB: UUID;
     }): Promise<Relationship | null>;
     getRelationships(params: { userId: UUID }): Promise<Relationship[]>;
+    getValue(key: string): Promise<string | null>;
+    setValue(key: string, value: string): Promise<void>;
+    deleteValue(key: string): Promise<void>;
+    hasKey(key: string): Promise<boolean>;
 }
 
 export interface IMemoryManager {

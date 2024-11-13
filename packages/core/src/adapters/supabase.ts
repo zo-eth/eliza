@@ -672,4 +672,37 @@ export class SupabaseDatabaseAdapter extends DatabaseAdapter {
 
         return data as Relationship[];
     }
+
+    async getValue(key: string): Promise<string | null> {
+        const { data, error } = await this.supabase
+            .from("keyValueStore")
+            .select("value")
+            .eq("key", key);
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        return data?.[0]?.value ?? null;
+    }
+
+    async setValue(key: string, value: string): Promise<void> {
+        await this.supabase.from("keyValueStore").upsert({ key, value });
+    }
+
+    async deleteValue(key: string): Promise<void> {
+        await this.supabase.from("keyValueStore").delete().eq("key", key);
+    }
+
+    async hasKey(key: string): Promise<boolean> {
+        const { data, error } = await this.supabase
+            .from("keyValueStore")
+            .select("*")
+            .eq("key", key);
+        if (error) {
+            console.error("Error checking if key exists:", error);
+            return false;   
+        }
+        return data?.length > 0;
+    }
 }
