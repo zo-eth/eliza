@@ -6,7 +6,7 @@ import {
     formatEvaluatorNames,
     formatEvaluators,
 } from "./evaluators.ts";
-import { MemoryManager } from "./memory.ts";
+import { embeddingZeroVector, MemoryManager } from "./memory.ts";
 import { parseJsonArrayFromText } from "./parsing.ts";
 import {
     Character,
@@ -32,7 +32,7 @@ import {
 
 import { names, uniqueNamesGenerator } from "unique-names-generator";
 import { formatFacts } from "../evaluators/fact.ts";
-import { elizaLogger } from "../index.ts";
+import { elizaLogger, embed } from "../index.ts";
 import { BrowserService } from "../services/browser.ts";
 import ImageDescriptionService from "../services/image.ts";
 import LlamaService from "../services/llama.ts";
@@ -47,7 +47,7 @@ import {
     formatActions,
 } from "./actions.ts";
 import { defaultCharacter } from "./defaultCharacter.ts";
-import { generateText } from "./generation.ts";
+import { generateText, splitChunks } from "./generation.ts";
 import { formatGoalsAsString, getGoals } from "./goals.ts";
 import { ImageGenModel } from "./imageGenModels.ts";
 import { formatActors, formatMessages, getActorDetails } from "./messages.ts";
@@ -341,51 +341,54 @@ export class AgentRuntime implements IAgentRuntime {
         this.ensureParticipantExists(this.agentId, this.agentId);
 
         for (const knowledgeItem of knowledge) {
-            // TODO: Fix the knowledge???
-            continue;
-            // const knowledgeId = stringToUuid(knowledgeItem);
-            // const existingDocument =
-            //     await this.documentsManager.getMemoryById(knowledgeId);
-            // if (!existingDocument) {
-            //     console.log(
-            //         "Processing knowledge for ",
-            //         this.character.name,
-            //         " - ",
-            //         knowledgeItem.slice(0, 100)
-            //     );
-            //     await this.documentsManager.createMemory({
-            //         embedding: embeddingZeroVector,
-            //         id: knowledgeId,
-            //         agentId: this.agentId,
-            //         roomId: this.agentId,
-            //         userId: this.agentId,
-            //         createdAt: Date.now(),
-            //         content: {
-            //             text: knowledgeItem,
-            //         },
-            //     });
-            //     const fragments = await splitChunks(
-            //         this,
-            //         knowledgeItem,
-            //         1200,
-            //         200,
-            //         "fast"
-            //     );
-            //     for (const fragment of fragments) {
-            //         const embedding = await embed(this, fragment);
-            //         await this.fragmentsManager.createMemory({
-            //             id: stringToUuid(fragment),
-            //             roomId: this.agentId,
-            //             userId: this.agentId,
-            //             createdAt: Date.now(),
-            //             content: {
-            //                 source: knowledgeId,
-            //                 text: fragment,
-            //             },
-            //             embedding,
-            //         });
-            //     }
-            // }
+            const knowledgeId = stringToUuid(knowledgeItem);
+            console.log("knowledgeId", knowledgeId);
+            const existingDocument =
+                await this.documentsManager.getMemoryById(knowledgeId);
+            console.log("existingDocument", existingDocument);
+            if (!existingDocument) {
+                console.log(
+                    "Processing knowledge for ",
+                    this.character.name,
+                    " - ",
+                    knowledgeItem.slice(0, 100)
+                );
+                await this.documentsManager.createMemory({
+                    embedding: embeddingZeroVector,
+                    id: knowledgeId,
+                    agentId: this.agentId,
+                    roomId: this.agentId,
+                    userId: this.agentId,
+                    createdAt: Date.now(),
+                    content: {
+                        text: knowledgeItem,
+                    },
+                });
+                const fragments = await splitChunks(
+                    this,
+                    knowledgeItem,
+                    1200,
+                    200,
+                    "gpt-4o-mini"
+                );
+                console.log("fragments", fragments);
+                for (const fragment of fragments) {
+                    const embedding = await embed(this, fragment);
+                    console.log("embedding", embedding);
+                    await this.fragmentsManager.createMemory({
+                        id: stringToUuid(fragment),
+                        roomId: this.agentId,
+                        agentId: this.agentId,
+                        userId: this.agentId,
+                        createdAt: Date.now(),
+                        content: {
+                            source: knowledgeId,
+                            text: fragment,
+                        },
+                        embedding,
+                    });
+                }
+            }
         }
     }
 
@@ -938,6 +941,30 @@ Text: ${attachment.text}
                 .join(" ");
         }
 
+        async function getKnowledge(runtime: AgentRuntime, message: Memory): Promise<string[]> {
+            const embedding = await embed(runtime, message.content.text);
+
+            const memories = await runtime.fragmentsManager.searchMemoriesByEmbedding(
+                embedding,
+                {
+                    roomId: message.agentId,
+                    agentId: message.agentId,
+                    count: 3,
+                }
+            );
+
+            const knowledge = memories.map(memory => memory.content.text);
+            return knowledge;
+        }
+
+        const formatKnowledge = (knowledge: string[]) => {
+            return knowledge.map(knowledge => `- ${knowledge}`).join("\n");
+        }
+
+        const formattedKnowledge = formatKnowledge(
+            await getKnowledge(this, message)
+        );
+
         const initialState = {
             agentId: this.agentId,
             // Character file stuff
@@ -953,6 +980,7 @@ Text: ${attachment.text}
                           )
                       ]
                     : "",
+            knowledge: formattedKnowledge,
             // Recent interactions between the sender and receiver, formatted as messages
             recentMessageInteractions: formattedMessageInteractions,
             // Recent interactions between the sender and receiver, formatted as posts

@@ -19,7 +19,7 @@ import {
     unfollowRoom,
     unmuteRoom,
     walletProvider,
-} from "@eliza/core";
+} from "@ai16z/eliza";
 import readline from "readline";
 
 const args = parseArguments();
