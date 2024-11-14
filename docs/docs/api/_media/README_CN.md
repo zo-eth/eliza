@@ -36,7 +36,7 @@
 ### 编辑角色文件
 
 - 查看文件 `src/core/defaultCharacter.ts` - 您可以修改它
-- 您也可以使用 `node --loader ts-node/esm src/index.ts --characters="path/to/your/character.json"` 加载角色并同时运行多个机器人。
+- 您也可以使用 `tsx src/index.ts --characters="path/to/your/character.json"` 加载角色并同时运行多个机器人。
 
 在完成账号和角色文件的配置后，输入以下命令行启动你的bot：
 

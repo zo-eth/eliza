@@ -152,7 +152,7 @@ Create `.vscode/launch.json`:
       "name": "Debug Eliza",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/src/index.ts",
-      "runtimeArgs": ["-r", "ts-node/register"],
+      "runtimeArgs": ["-r"],
       "env": {
         "DEBUG": "eliza:*"
       }
