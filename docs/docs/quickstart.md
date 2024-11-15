@@ -8,7 +8,7 @@ sidebar_position: 2
 
 Before getting started with Eliza, ensure you have:
 
-- [Node.js 22+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+- [Node.js 23+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 - [pnpm](https://pnpm.io/installation)
 - Git for version control
 - A code editor (VS Code recommended)
