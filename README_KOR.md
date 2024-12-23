@@ -44,6 +44,8 @@
 ```bash
 git clone https://github.com/elizaos/eliza-starter.git
 
+cd eliza-starter
+
 cp .env.example .env
 
 pnpm i && pnpm start
