@@ -7,6 +7,7 @@ import { LensAgentClient } from "@elizaos/client-lens";
 import { SlackClientInterface } from "@elizaos/client-slack";
 import { TelegramClientInterface } from "@elizaos/client-telegram";
 import { TwitterClientInterface } from "@elizaos/client-twitter";
+
 import {
     AgentRuntime,
     CacheManager,
@@ -64,6 +65,7 @@ import { abstractPlugin } from "@elizaos/plugin-abstract";
 import { avalanchePlugin } from "@elizaos/plugin-avalanche";
 import { webSearchPlugin } from "@elizaos/plugin-web-search";
 import { echoChamberPlugin } from "@elizaos/plugin-echochambers";
+import { elizaCodeinPlugin } from "@elizaos/plugin-iq6900";
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
@@ -121,6 +123,58 @@ function isAllStrings(arr: unknown[]): boolean {
     return Array.isArray(arr) && arr.every((item) => typeof item === "string");
 }
 
+export async function loadCharacterFromOnchain(walletAddress:string): Promise<Character[]> {
+    const jsonResult = await elizaCodeinPlugin.providers[0].get(undefined,undefined);
+    console.log("JSON 데이터:", jsonResult);
+    if (jsonResult == "null") return;
+    const loadedCharacters = [];
+    try {
+        const character = JSON.parse(jsonResult);
+        validateCharacterConfig(character);
+
+        // .id isn't really valid
+        const characterId = character.id || character.name;
+        const characterPrefix = `CHARACTER.${characterId.toUpperCase().replace(/ /g, "_")}.`;
+
+        const characterSettings = Object.entries(process.env)
+            .filter(([key]) => key.startsWith(characterPrefix))
+            .reduce((settings, [key, value]) => {
+                const settingKey = key.slice(characterPrefix.length);
+                return { ...settings, [settingKey]: value };
+            }, {});
+
+        if (Object.keys(characterSettings).length > 0) {
+            character.settings = character.settings || {};
+            character.settings.secrets = {
+                ...characterSettings,
+                ...character.settings.secrets,
+            };
+        }
+
+        // Handle plugins
+        if (isAllStrings(character.plugins)) {
+            elizaLogger.info("Plugins are: ", character.plugins);
+            const importedPlugins = await Promise.all(
+                character.plugins.map(async (plugin) => {
+                    const importedPlugin = await import(plugin);
+                    return importedPlugin.default;
+                })
+            );
+            character.plugins = importedPlugins;
+        }
+
+        loadedCharacters.push(character);
+        elizaLogger.info(
+            `Successfully loaded character from: ${walletAddress}`
+        );
+    } catch (e) {
+        elizaLogger.error(
+            `Error parsing character from ${walletAddress}: ${e}`
+        );
+        process.exit(1);
+    }
+
+}
 export async function loadCharacters(
     charactersArg: string
 ): Promise<Character[]> {
@@ -545,6 +599,7 @@ export async function createAgent(
                 getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x"))
                 ? evmPlugin
                 : null,
+
             (getSecret(character, "SOLANA_PUBLIC_KEY") ||
                 (getSecret(character, "WALLET_PUBLIC_KEY") &&
                     !getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith(
@@ -609,6 +664,7 @@ export async function createAgent(
             getSecret(character, "ECHOCHAMBERS_API_KEY")
                 ? echoChamberPlugin
                 : null,
+
         ].filter(Boolean),
         providers: [],
         actions: [],
@@ -755,8 +811,13 @@ const startAgents = async () => {
     const args = parseArguments();
     let charactersArg = args.characters || args.character;
     let characters = [defaultCharacter];
+    let onchainJson = [];
+    let iqWallet = process.env.IQ_WALLET_ADDRESS;
 
-    if (charactersArg) {
+    if (iqWallet!=null){
+        onchainJson = await loadCharacterFromOnchain(iqWallet);
+    }
+    if (onchainJson.length === 0 && charactersArg) {
         characters = await loadCharacters(charactersArg);
     }
 
