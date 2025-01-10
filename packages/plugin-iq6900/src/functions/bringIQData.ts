@@ -1,27 +1,20 @@
 import {
-    Provider,
-    IAgentRuntime,
-    Memory,
-    State,
     elizaLogger,
 } from "@elizaos/core";
 
 
 import { Connection, PublicKey } from "@solana/web3.js";
+const network = process.env.IQSOlRPC;
+const stringAddress = process.env.IQ_WALLET_ADDRESS;
 
-let network = process.env.IQSOlRPC;
+const connection = new Connection(network, 'confirmed');
+
 const iqHost = "https://solanacontractapi.uc.r.appspot.com";
 
-class OnChainJsonProvider {
-    private connection: Connection;
-
-    constructor() {
-        this.connection = new Connection(network, "confirmed");
-    }
-
-    private async fetchDBPDA(userKey: string): Promise<string> {
+    async function fetchDBPDA(): Promise<string> {
         try {
-            const response = await fetch(`${iqHost}/getDBPDA/${userKey}`);
+            elizaLogger.info("Your Address:"+stringAddress);
+            const response = await fetch(`${iqHost}/getDBPDA/${stringAddress}`);
             const data = await response.json();
             if (response.ok) {
                 return data.DBPDA as string;
@@ -34,13 +27,13 @@ class OnChainJsonProvider {
         }
     }
 
-    private convertTextToEmoji(text: string) {
+    async function convertTextToEmoji(text: string) {
         return text.replace(/\/u([0-9A-Fa-f]{4,6})/g, (match, code) => {
             return String.fromCodePoint(parseInt(code, 16));
         });
     }
 
-    private async fetchTransactionInfo(txId: string) {
+    async function fetchTransactionInfo(txId: string) {
         try {
             const response = await fetch(`${iqHost}/get_transaction_info/${txId}`);
             if (response.ok) {
@@ -48,12 +41,12 @@ class OnChainJsonProvider {
                 return data.argData;
             }
         } catch (error) {
-            console.error("Error fetching transaction info:", error);
+            elizaLogger.error("Error fetching transaction info:", error);
         }
         return null;
     }
 
-    private async getTransactionData(transactionData: {
+    async function getTransactionData(transactionData: {
         method: string;
         code: string;
         decode_break: number;
@@ -76,8 +69,8 @@ class OnChainJsonProvider {
         }
     }
 
-    private async extractCommitMessage(dataTxid: string): Promise<string> {
-        const txInfo = await this.fetchTransactionInfo(dataTxid);
+    async function extractCommitMessage(dataTxid: string): Promise<string> {
+        const txInfo = await fetchTransactionInfo(dataTxid);
         if (!txInfo) return "null";
 
         const type_field = txInfo.type_field || "null";
@@ -90,8 +83,8 @@ class OnChainJsonProvider {
         }
     }
 
-    private async bringCode(dataTxid: string) {
-        const txInfo = await this.fetchTransactionInfo(dataTxid);
+    async function bringCode(dataTxid: string) {
+        const txInfo = await fetchTransactionInfo(dataTxid);
         if (!txInfo) return {
             json_data: "false",
             commit_message: "false",
@@ -101,19 +94,24 @@ class OnChainJsonProvider {
         const offset = txInfo.offset || "null";
         let chunks = [];
         let before_tx = tail_tx;
+        if (before_tx == "null") return {
+            json_data: "false",
+            commit_message: "false",
+        };
 
         while (before_tx !== "Genesis") {
             if (before_tx) {
-                const chunk = await this.fetchTransactionInfo(before_tx);
+                elizaLogger.info("Chunks: "+before_tx);
+                const chunk = await fetchTransactionInfo(before_tx);
                 if (!chunk) {
-                    console.log("No chunk found.");
+                    elizaLogger.error("No chunk found.");
                     return {
                         json_data: "false",
                         commit_message: "false",
                     };
                 }
 
-                const chunkData = await this.getTransactionData(chunk);
+                const chunkData = await getTransactionData(chunk);
                 if (chunkData.data == "null"){
                     console.error("chunk data undefined");
                     return {
@@ -134,18 +132,19 @@ class OnChainJsonProvider {
         }
 
         const textList = chunks.reverse();
-        const textData = textList.join();
+        const textData = textList.join("");
 
         return {
-            json_data: this.convertTextToEmoji(textData),
+            json_data: convertTextToEmoji(textData),
             commit_message: offset,
         };
     }
 
-    private async fetchSignaturesForAddress(dbAddress: PublicKey): Promise<string[]> {
+    async function fetchSignaturesForAddress(dbAddress: PublicKey): Promise<string[]> {
         try {
-            const signatures = await this.connection.getSignaturesForAddress(dbAddress, {
-                limit: 30,
+            elizaLogger.info("Find Your Signature...(IQ6900)");
+            const signatures = await connection.getSignaturesForAddress(dbAddress, {
+                limit: 20,
             });
             return signatures.map((sig) => sig.signature);
         } catch (error) {
@@ -154,48 +153,36 @@ class OnChainJsonProvider {
         }
     }
 
-    private async findRecentJsonSignature(stringAddress: string): Promise<string> {
-        const dbAddress = await this.fetchDBPDA(stringAddress);
-        const signatures = await this.fetchSignaturesForAddress(new PublicKey(dbAddress));
+    async function findRecentJsonSignature(): Promise<string> {
+        elizaLogger.info("FindRecentJsonSignature...(IQ6900)");
+        const dbAddress = await fetchDBPDA();
+        const signatures = await fetchSignaturesForAddress(new PublicKey(dbAddress));
 
         for (const signature of signatures) {
-            const commit = await this.extractCommitMessage(signature);
+            const commit = await extractCommitMessage(signature);
             if (commit !== "null") return signature;
         }
         return "null";
     }
 
-    async bringAgentWithWalletAddress(stringAddress: string) {
+    export async function bringAgentWithWalletAddress() {
         elizaLogger.info("Connecting to Solana...(IQ6900)");
-        const recent = await this.findRecentJsonSignature(stringAddress);
+        const recent = await findRecentJsonSignature();
         if (recent === "null") {
-            return { json_data: "null", commit_message: "null" };
+
+            elizaLogger.error("Cannot found onchain data in this wallet.");
+            return  "null";
         }
-        const result = await this.bringCode(recent);
-        elizaLogger.info("Your Json:"+ result.json_data.slice(0,20)+"....");
-        return result;
+        const result = await bringCode(recent);
+
+        const json_string =  await result.json_data;
+
+        return await json_string;
     }
-}
 
 
 
 
-const onChainJsonProvider: Provider = {
-    get: async (
-        runtime: IAgentRuntime,
-        _message: Memory,
-        _state?: State
-    ): Promise<string> => {
-        const userWallet = process.env.IQ_WALLET_ADDRESS;
-        if (userWallet != null){
-        const provider = new OnChainJsonProvider();
-        const result = await provider.bringAgentWithWalletAddress(userWallet);
-        return result.json_data;
-        }
-        return "null";
-    },
 
-};
 
-// Module exports
-export { onChainJsonProvider };
+

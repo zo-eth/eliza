@@ -65,7 +65,9 @@ import { abstractPlugin } from "@elizaos/plugin-abstract";
 import { avalanchePlugin } from "@elizaos/plugin-avalanche";
 import { webSearchPlugin } from "@elizaos/plugin-web-search";
 import { echoChamberPlugin } from "@elizaos/plugin-echochambers";
-import { elizaCodeinPlugin } from "@elizaos/plugin-iq6900";
+import { elizaCodeinPlugin, onchainJson } from "@elizaos/plugin-iq6900";
+
+
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
@@ -123,13 +125,15 @@ function isAllStrings(arr: unknown[]): boolean {
     return Array.isArray(arr) && arr.every((item) => typeof item === "string");
 }
 
-export async function loadCharacterFromOnchain(walletAddress:string): Promise<Character[]> {
-    const jsonResult = await elizaCodeinPlugin.providers[0].get(undefined,undefined);
-    console.log("JSON 데이터:", jsonResult);
-    if (jsonResult == "null") return;
+export async function loadCharacterFromOnchain(): Promise<Character[]> {
+    const jsonText = onchainJson;
+
+    console.log('JSON:', jsonText);
+    if (jsonText == "null") return;
     const loadedCharacters = [];
     try {
-        const character = JSON.parse(jsonResult);
+
+        const character = JSON.parse(jsonText);
         validateCharacterConfig(character);
 
         // .id isn't really valid
@@ -165,16 +169,17 @@ export async function loadCharacterFromOnchain(walletAddress:string): Promise<Ch
 
         loadedCharacters.push(character);
         elizaLogger.info(
-            `Successfully loaded character from: ${walletAddress}`
+            `Successfully loaded character from: ${process.env.IQ_WALLET_ADDRESS}`
         );
+        return loadedCharacters;
     } catch (e) {
         elizaLogger.error(
-            `Error parsing character from ${walletAddress}: ${e}`
+            `Error parsing character from ${process.env.IQ_WALLET_ADDRESS}: ${e}`
         );
         process.exit(1);
     }
-
 }
+
 export async function loadCharacters(
     charactersArg: string
 ): Promise<Character[]> {
@@ -578,6 +583,10 @@ export async function createAgent(
         character,
         // character.plugins are handled when clients are added
         plugins: [
+            getSecret(character, "IQ_WALLET_ADDRESS")&&
+            getSecret(character, "IQSOlRPC")
+                ? elizaCodeinPlugin
+                : null,
             bootstrapPlugin,
             getSecret(character, "CONFLUX_CORE_PRIVATE_KEY")
                 ? confluxPlugin
@@ -811,13 +820,11 @@ const startAgents = async () => {
     const args = parseArguments();
     let charactersArg = args.characters || args.character;
     let characters = [defaultCharacter];
-    let onchainJson = [];
-    let iqWallet = process.env.IQ_WALLET_ADDRESS;
 
-    if (iqWallet!=null){
-        onchainJson = await loadCharacterFromOnchain(iqWallet);
+    if (process.env.IQ_WALLET_ADDRESS) {
+        characters = await loadCharacterFromOnchain();
     }
-    if (onchainJson.length === 0 && charactersArg) {
+    if (onchainJson && charactersArg) {
         characters = await loadCharacters(charactersArg);
     }
 
