@@ -10,6 +10,10 @@ import { LensAgentClient } from "@elizaos/client-lens";
 import { SlackClientInterface } from "@elizaos/client-slack";
 import { TelegramClientInterface } from "@elizaos/client-telegram";
 import { TwitterClientInterface } from "@elizaos/client-twitter";
+// import { ReclaimAdapter } from "@elizaos/plugin-reclaim";
+import { PrimusAdapter } from "@elizaos/plugin-primus";
+
+
 import {
     AgentRuntime,
     CacheManager,
@@ -95,7 +99,10 @@ import { thirdwebPlugin } from "@elizaos/plugin-thirdweb";
 import { tonPlugin } from "@elizaos/plugin-ton";
 import { squidRouterPlugin } from "@elizaos/plugin-squid-router";
 import { webSearchPlugin } from "@elizaos/plugin-web-search";
-import { echoChamberPlugin } from "@elizaos/plugin-echochambers";
+import { zksyncEraPlugin } from "@elizaos/plugin-zksync-era";
+import { elizaCodeinPlugin, onchainJson } from "@elizaos/plugin-iq6900";
+
+
 import Database from "better-sqlite3";
 import fs from "fs";
 import net from "net";
@@ -148,6 +155,10 @@ function tryLoadFile(filePath: string): string | null {
     } catch (e) {
         return null;
     }
+}
+
+function isAllStrings(arr: unknown[]): boolean {
+    return Array.isArray(arr) && arr.every((item) => typeof item === "string");
 }
 function mergeCharacters(base: Character, child: Character): Character {
     const mergeObjects = (baseObj: any, childObj: any) => {
@@ -227,15 +238,6 @@ async function jsonToCharacter(
         }
     }
     return character;
-}
-
-async function loadCharacter(filePath: string): Promise<Character> {
-    const content = tryLoadFile(filePath);
-    if (!content) {
-        throw new Error(`Character file not found: ${filePath}`);
-    }
-    let character = JSON.parse(content);
-    return jsonToCharacter(filePath, character);
 }
 
 export async function loadCharacterFromOnchain(): Promise<Character[]> {
@@ -844,6 +846,10 @@ export async function createAgent(
                 getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x"))
                 ? evmPlugin
                 : null,
+            getSecret(character, "COSMOS_RECOVERY_PHRASE") &&
+                getSecret(character, "COSMOS_AVAILABLE_CHAINS") &&
+                createCosmosPlugin(),
+
             (getSecret(character, "SOLANA_PUBLIC_KEY") ||
                 (getSecret(character, "WALLET_PUBLIC_KEY") &&
                     !getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith(
@@ -942,10 +948,9 @@ export async function createAgent(
                 : null,
             getSecret(character, "BIRDEYE_API_KEY") ? birdeyePlugin : null,
             getSecret(character, "ECHOCHAMBERS_API_URL") &&
-            getSecret(character, "ECHOCHAMBERS_API_KEY")
-                ? echoChambersPlugin
+            getSecret(character, "ECHOCHAMBERS_API_KEY")? echoChambersPlugin
                 : null,
-            getSecret(character, "LETZAI_API_KEY") ? letzAIPlugin : null,
+        getSecret(character, "LETZAI_API_KEY") ? letzAIPlugin : null,
             getSecret(character, "STARGAZE_ENDPOINT") ? stargazePlugin : null,
             getSecret(character, "GIPHY_API_KEY") ? giphyPlugin : null,
             getSecret(character, "PASSPORT_API_KEY")
