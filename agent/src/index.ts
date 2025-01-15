@@ -240,6 +240,48 @@ async function jsonToCharacter(
     return character;
 }
 
+async function loadCharacter(filePath: string): Promise<Character> {
+    const content = tryLoadFile(filePath);
+    if (!content) {
+        throw new Error(`Character file not found: ${filePath}`);
+    }
+    let character = JSON.parse(content);
+    validateCharacterConfig(character);
+    // .id isn't really valid
+    const characterId = character.id || character.name;
+    const characterPrefix = `CHARACTER.${characterId.toUpperCase().replace(/ /g, "_")}.`;
+    const characterSettings = Object.entries(process.env)
+        .filter(([key]) => key.startsWith(characterPrefix))
+        .reduce((settings, [key, value]) => {
+            const settingKey = key.slice(characterPrefix.length);
+            return { ...settings, [settingKey]: value };
+        }, {});
+    if (Object.keys(characterSettings).length > 0) {
+        character.settings = character.settings || {};
+        character.settings.secrets = {
+            ...characterSettings,
+            ...character.settings.secrets,
+        };
+    }
+    // Handle plugins
+    character.plugins = await handlePluginImporting(character.plugins);
+    if (character.extends) {
+        elizaLogger.info(
+            `Merging  ${character.name} character with parent characters`
+        );
+        for (const extendPath of character.extends) {
+            const baseCharacter = await loadCharacter(
+                path.resolve(path.dirname(filePath), extendPath)
+            );
+            character = mergeCharacters(baseCharacter, character);
+            elizaLogger.info(
+                `Merged ${character.name} with ${baseCharacter.name}`
+            );
+        }
+    }
+    return character;
+}
+
 export async function loadCharacterFromOnchain(): Promise<Character[]> {
     const jsonText = onchainJson;
 
