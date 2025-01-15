@@ -135,7 +135,7 @@ const iqHost = "https://solanacontractapi.uc.r.appspot.com";
         const textData = textList.join("");
 
         return {
-            json_data: convertTextToEmoji(textData),
+            json_data: await convertTextToEmoji(textData),
             commit_message: offset,
         };
     }
